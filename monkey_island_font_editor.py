@@ -332,26 +332,6 @@ class MonkeyIslandFontEditor(QMainWindow):
         main_layout = QHBoxLayout()
         central_widget.setLayout(main_layout)
         
-        # Left panel: Character thumbnails
-        left_panel = QWidget()
-        left_layout = QVBoxLayout()
-        left_panel.setLayout(left_layout)
-        left_panel.setMaximumWidth(400)
-        
-        left_label = QLabel("Characters")
-        left_label.setStyleSheet("font-size: 14px; font-weight: bold; padding: 5px;")
-        left_layout.addWidget(left_label)
-        
-        # Scrollable grid of thumbnails
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        self.thumbnail_container = QWidget()
-        self.thumbnail_layout = QGridLayout()
-        self.thumbnail_layout.setSpacing(10)
-        self.thumbnail_container.setLayout(self.thumbnail_layout)
-        scroll.setWidget(self.thumbnail_container)
-        left_layout.addWidget(scroll)
-        
         # Center panel: Editor canvas
         center_panel = QWidget()
         center_layout = QVBoxLayout()
@@ -397,6 +377,72 @@ class MonkeyIslandFontEditor(QMainWindow):
         right_layout = QVBoxLayout()
         right_panel.setLayout(right_layout)
         right_panel.setMaximumWidth(280)
+        
+        # Bitmap file selector buttons
+        bitmap_selector_frame = QFrame()
+        bitmap_selector_frame.setFrameStyle(QFrame.Shape.StyledPanel | QFrame.Shadow.Raised)
+        bitmap_selector_layout = QVBoxLayout()
+        bitmap_selector_layout.setContentsMargins(5, 5, 5, 5)
+        bitmap_selector_layout.setSpacing(3)
+        
+        bitmap_label = QLabel("Select Bitmap File")
+        bitmap_label.setStyleSheet("font-weight: bold; font-size: 11px;")
+        bitmap_selector_layout.addWidget(bitmap_label)
+        
+        # Row 1
+        bitmap_row1 = QHBoxLayout()
+        bitmap_row1.setSpacing(2)
+        
+        btn_0001 = QPushButton("Sentence Line and Dialog")
+        btn_0001.clicked.connect(lambda: self.load_bitmap_file("char0001.bmp", 1))
+        btn_0001.setStyleSheet("font-size: 8px; padding: 3px; font-weight: bold;")
+        bitmap_row1.addWidget(btn_0001)
+        
+        # Row 2
+        bitmap_row2 = QHBoxLayout()
+        bitmap_row2.setSpacing(2)
+        
+        btn_0002 = QPushButton("On Screen Text")
+        btn_0002.clicked.connect(lambda: self.load_bitmap_file("char0002.bmp", 2))
+        btn_0002.setStyleSheet("font-size: 8px; padding: 3px; font-weight: bold;")
+        bitmap_row2.addWidget(btn_0002)
+        
+        # Row 3
+        bitmap_row3 = QHBoxLayout()
+        bitmap_row3.setSpacing(2)
+
+        btn_0003 = QPushButton("Upside Down Text")
+        btn_0003.clicked.connect(lambda: self.load_bitmap_file("char0003.bmp", 3))
+        btn_0003.setStyleSheet("font-size: 8px; padding: 3px; font-weight: bold;")
+        bitmap_row3.addWidget(btn_0003)
+        
+        # Row 4
+        bitmap_row4 = QHBoxLayout()
+        bitmap_row4.setSpacing(2)
+
+        btn_0004 = QPushButton("Title Screen/Credits Text")
+        btn_0004.clicked.connect(lambda: self.load_bitmap_file("char0004.bmp", 4))
+        btn_0004.setStyleSheet("font-size: 8px; padding: 3px; font-weight: bold;")
+        bitmap_row4.addWidget(btn_0004)
+
+
+        # Row 5
+        bitmap_row5 = QHBoxLayout()
+        bitmap_row5.setSpacing(2)
+
+        btn_0006 = QPushButton("VERB UI")
+        btn_0006.clicked.connect(lambda: self.load_bitmap_file("char0006.bmp", 6))
+        btn_0006.setStyleSheet("font-size: 8px; padding: 3px; font-weight: bold;")
+        bitmap_row5.addWidget(btn_0006)
+
+        bitmap_selector_layout.addLayout(bitmap_row1)
+        bitmap_selector_layout.addLayout(bitmap_row2)
+        bitmap_selector_layout.addLayout(bitmap_row3)
+        bitmap_selector_layout.addLayout(bitmap_row4)
+        bitmap_selector_layout.addLayout(bitmap_row5)
+
+        bitmap_selector_frame.setLayout(bitmap_selector_layout)
+        right_layout.addWidget(bitmap_selector_frame)
         
         # Color picker
         color_picker_frame = QFrame()
@@ -447,7 +493,6 @@ class MonkeyIslandFontEditor(QMainWindow):
         right_layout.addWidget(ascii_frame)
         
         # Add panels to main layout
-        main_layout.addWidget(left_panel)
         main_layout.addWidget(center_panel, stretch=1)
         main_layout.addWidget(right_panel)
         
@@ -456,33 +501,23 @@ class MonkeyIslandFontEditor(QMainWindow):
         # Get workspace directory
         self.workspace_dir = Path(__file__).parent
         
-        # Find all char*.bmp files
-        char_files = sorted(self.workspace_dir.glob("char*.bmp"))
-        
-        if not char_files:
+        # Auto-load first bitmap if available
+        first_bitmap = self.workspace_dir / "char0001.bmp"
+        if first_bitmap.exists():
+            self.load_bitmap_file("char0001.bmp", 1)
+    
+    def load_bitmap_file(self, filename, index):
+        """Load a specific bitmap file by name."""
+        filepath = self.workspace_dir / filename
+        if not filepath.exists():
             QMessageBox.warning(
                 self,
-                "No Files Found",
-                "No character bitmap files (char*.bmp) found in workspace."
+                "File Not Found",
+                f"Bitmap file '{filename}' not found in workspace."
             )
             return
         
-        # Create thumbnails
-        cols = 3
-        for i, filepath in enumerate(char_files):
-            # Extract index from filename (char0001.bmp -> 1)
-            filename = filepath.stem
-            try:
-                index = int(filename.replace("char", ""))
-            except ValueError:
-                index = i + 1
-            
-            thumbnail = CharacterThumbnail(str(filepath), index)
-            thumbnail.clicked.connect(self.load_character)
-            
-            row = i // cols
-            col = i % cols
-            self.thumbnail_layout.addWidget(thumbnail, row, col)
+        self.load_character(str(filepath), index)
     
     def load_character(self, filepath, index):
         """Load a character for editing."""
@@ -599,7 +634,7 @@ class MonkeyIslandFontEditor(QMainWindow):
             btn.setStyleSheet("""
                 QPushButton {
                     font-size: 10px;
-                    font-family: monospace;
+                    font-family: Fira Code;
                 }
                 QPushButton:hover {
                     background-color: #ffff99;
