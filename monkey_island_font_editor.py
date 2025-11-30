@@ -27,6 +27,7 @@ class PixelEditorCanvas(QWidget):
     pixelChanged = pyqtSignal(int, int, int)  # x, y, color_index
     characterJumped = pyqtSignal(int)  # character index
     historyChanged = pyqtSignal()  # Emitted when undo/redo state changes
+    selectionChanged = pyqtSignal(bool)  # Emitted when selection state changes (has_selection)
     
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -258,6 +259,7 @@ class PixelEditorCanvas(QWidget):
                 self.selecting = True
                 self.selection_start = (x, y)
                 self.selection_end = (x, y)
+                self.selectionChanged.emit(True)
                 self.update()
             elif self.edit_mode == 'draw':
                 # Normal drawing - save state for undo
@@ -356,6 +358,7 @@ class PixelEditorCanvas(QWidget):
                     self.clipboard_data.append(0)
         
         self.clipboard_size = (width, height)
+        self.selectionChanged.emit(False)  # Selection will be cleared after copy
         return True
     
     def start_paste_mode(self):
@@ -406,6 +409,7 @@ class PixelEditorCanvas(QWidget):
         """Clear current selection."""
         self.selection_start = None
         self.selection_end = None
+        self.selectionChanged.emit(False)
         self.update()
     
     def set_edit_mode(self, mode):
@@ -659,6 +663,7 @@ class MonkeyIslandFontEditor(QMainWindow):
         self.canvas = PixelEditorCanvas()
         self.canvas.characterJumped.connect(self.scroll_to_character)
         self.canvas.historyChanged.connect(self.update_undo_redo_buttons)
+        self.canvas.selectionChanged.connect(self.update_selection_buttons)
         self.canvas_scroll.setWidget(self.canvas)
         center_layout.addWidget(self.canvas_scroll)
         
@@ -712,11 +717,12 @@ class MonkeyIslandFontEditor(QMainWindow):
         """)
         controls_layout.addWidget(self.select_mode_btn)
         
-        clear_sel_btn = QPushButton("✖ Clear")
-        clear_sel_btn.setToolTip("Clear current selection")
-        clear_sel_btn.clicked.connect(self.clear_selection_action)
-        clear_sel_btn.setStyleSheet("padding: 5px 15px;")
-        controls_layout.addWidget(clear_sel_btn)
+        self.clear_sel_btn = QPushButton("✖ Clear")
+        self.clear_sel_btn.setToolTip("Clear current selection")
+        self.clear_sel_btn.clicked.connect(self.clear_selection_action)
+        self.clear_sel_btn.setStyleSheet("padding: 5px 15px;")
+        self.clear_sel_btn.setEnabled(False)  # Disabled by default
+        controls_layout.addWidget(self.clear_sel_btn)
         
         controls_layout.addStretch()
         
@@ -1157,6 +1163,10 @@ class MonkeyIslandFontEditor(QMainWindow):
         """Update undo/redo button states."""
         self.undo_btn.setEnabled(self.canvas.can_undo())
         self.redo_btn.setEnabled(self.canvas.can_redo())
+    
+    def update_selection_buttons(self, has_selection):
+        """Update selection-related button states."""
+        self.clear_sel_btn.setEnabled(has_selection)
     
     def save_current(self):
         """Save the currently edited character."""
