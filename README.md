@@ -4,7 +4,9 @@
 
 A specialized pixel editor for editing The Secret of Monkey Island bitmap font files. Built with PyQt6 to preserve the original color palette without modification.
 
-I coded it with AI help in one afternoon in my spare time to make ease my life on translating The Secrect of Monkey Island to brasilian portuguese. The original game does not have some special lating characters.
+I coded it in one afternoon in my spare time to make ease my life on translating The Secrect of Monkey Island to brasilian portuguese. The original game does not have some special lating characters.
+
+Yes, with AI help, never did anything with PyQt6 and wanted to try something else other than XCode/Swift this time.
 
 ## Features
 
