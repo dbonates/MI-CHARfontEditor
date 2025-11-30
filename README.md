@@ -8,7 +8,7 @@ I did it one afternoon in my spare time to make ease my life on translating The 
 
 [scummrp and scummfont](https://github.com/dwatteau/scummtr)
 
-## The flow
+## The flow (you don't need to do it as these bitmap are already on this repo, but to repack modified versions into the game you will need them. Also, I put them on system PATH to make things easier.
 
 ** Be sure to run these tools on same directory of `MONKEY.OOO` AND `MONKEY.001` files.
 
