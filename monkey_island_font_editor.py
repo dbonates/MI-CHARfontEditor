@@ -50,6 +50,9 @@ class PixelEditorCanvas(QWidget):
         self.paste_position = None  # Current paste preview position
         self.paste_dragging = False
         
+        # Edit mode: 'draw' or 'select'
+        self.edit_mode = 'draw'
+        
         # Undo/Redo history
         self.undo_stack = []  # List of (pixel_data, description)
         self.redo_stack = []  # List of (pixel_data, description)
@@ -248,15 +251,15 @@ class PixelEditorCanvas(QWidget):
                 self.paste_position = (x, y)
                 self.paste_dragging = True
                 self.update()
-            elif event.modifiers() & Qt.KeyboardModifier.ShiftModifier:
-                # Start selection
+            elif self.edit_mode == 'select' or event.modifiers() & Qt.KeyboardModifier.ShiftModifier:
+                # Start selection (in select mode or with Shift key)
                 x = event.pos().x() // self.zoom_level
                 y = event.pos().y() // self.zoom_level
                 self.selecting = True
                 self.selection_start = (x, y)
                 self.selection_end = (x, y)
                 self.update()
-            else:
+            elif self.edit_mode == 'draw':
                 # Normal drawing - save state for undo
                 self.save_state("Draw")
                 self.drawing = True
@@ -404,6 +407,18 @@ class PixelEditorCanvas(QWidget):
         self.selection_start = None
         self.selection_end = None
         self.update()
+    
+    def set_edit_mode(self, mode):
+        """Set edit mode to 'draw' or 'select'."""
+        if mode in ['draw', 'select']:
+            self.edit_mode = mode
+            # Clear selection when switching to draw mode
+            if mode == 'draw':
+                self.clear_selection()
+    
+    def get_edit_mode(self):
+        """Get current edit mode."""
+        return self.edit_mode
     
     def save_state(self, description="Action"):
         """Save current image state to undo stack."""
@@ -658,6 +673,50 @@ class MonkeyIslandFontEditor(QMainWindow):
         zoom_in_btn = QPushButton("Zoom +")
         zoom_in_btn.clicked.connect(lambda: self.adjust_zoom(5))
         controls_layout.addWidget(zoom_in_btn)
+        
+        controls_layout.addStretch()
+        
+        # Mode selection buttons
+        mode_label = QLabel("Mode:")
+        mode_label.setStyleSheet("font-weight: bold;")
+        controls_layout.addWidget(mode_label)
+        
+        self.draw_mode_btn = QPushButton("✏️ Draw")
+        self.draw_mode_btn.setToolTip("Switch to draw mode (paint pixels)")
+        self.draw_mode_btn.clicked.connect(lambda: self.set_mode('draw'))
+        self.draw_mode_btn.setCheckable(True)
+        self.draw_mode_btn.setChecked(True)
+        self.draw_mode_btn.setStyleSheet("""
+            QPushButton {
+                padding: 5px 15px;
+            }
+            QPushButton:checked {
+                background-color: #90EE90;
+                font-weight: bold;
+            }
+        """)
+        controls_layout.addWidget(self.draw_mode_btn)
+        
+        self.select_mode_btn = QPushButton("⬚ Select")
+        self.select_mode_btn.setToolTip("Switch to select mode (drag to select region)")
+        self.select_mode_btn.clicked.connect(lambda: self.set_mode('select'))
+        self.select_mode_btn.setCheckable(True)
+        self.select_mode_btn.setStyleSheet("""
+            QPushButton {
+                padding: 5px 15px;
+            }
+            QPushButton:checked {
+                background-color: #87CEEB;
+                font-weight: bold;
+            }
+        """)
+        controls_layout.addWidget(self.select_mode_btn)
+        
+        clear_sel_btn = QPushButton("✖ Clear")
+        clear_sel_btn.setToolTip("Clear current selection")
+        clear_sel_btn.clicked.connect(self.clear_selection_action)
+        clear_sel_btn.setStyleSheet("padding: 5px 15px;")
+        controls_layout.addWidget(clear_sel_btn)
         
         controls_layout.addStretch()
         
@@ -998,6 +1057,23 @@ class MonkeyIslandFontEditor(QMainWindow):
     def scroll_to_character(self, char_index):
         """Handle character jump signal from canvas."""
         self.jump_to_character(char_index)
+    
+    def set_mode(self, mode):
+        """Set edit mode (draw or select)."""
+        self.canvas.set_edit_mode(mode)
+        
+        # Update button states
+        if mode == 'draw':
+            self.draw_mode_btn.setChecked(True)
+            self.select_mode_btn.setChecked(False)
+        elif mode == 'select':
+            self.draw_mode_btn.setChecked(False)
+            self.select_mode_btn.setChecked(True)
+    
+    def clear_selection_action(self):
+        """Clear selection and switch to select mode."""
+        self.canvas.clear_selection()
+        self.set_mode('select')
     
     def copy_selection(self):
         """Copy selected region."""
